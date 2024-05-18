@@ -5,12 +5,12 @@ import pandas as pd
 class Dendra:
     def __init__(self, email, password, strategy="local"):
         """
-        Initialize the APIClient with authentication details and retrieve the token.
+        Initialize the API Client with authentication details and retrieve the token.
 
         Parameters:
-        auth_url (str): The URL for the authentication endpoint.
-        username (str): The username for authentication.
-        password (str): The password for authentication.
+        email (str): dendra user email
+        password (str): The dendra password for authentication.
+        strategy (str): leaving as default for now
         """
         self.email = email
         self.password = password
@@ -56,7 +56,7 @@ class Dendra:
         print("successfully authenticated")
 
     def get_datastreams(self, datastream_name, station_id):
-        """request data"""
+        """request datastream id"""
         # raise NotImplementedError
 
         # Use the token to request data from the API

@@ -15,7 +15,7 @@ class Dendra:
         self.email = email
         self.password = password
         self.strategy = strategy
-
+        self.url = "https://api.dendra.science/v2/"
         self.authenticate()
 
     def authenticate(self):
@@ -25,11 +25,8 @@ class Dendra:
         Returns:
         str: The authentication token if successful, None otherwise.
         """
-        url = "https://api.dendra.science/v2/"
-        auth_url = url + "authentication"
+        auth_url = self.url + "authentication"
         headers = {"Content-Type": "application/json"}
-
-        # auth_url = credentials.get("auth_url")
 
         creds = {
             "email": self.email,
@@ -39,7 +36,7 @@ class Dendra:
 
         # Authenticate and obtain a token
         try:
-            auth_response = requests.post(auth_url, json=creds)
+            auth_response = requests.post(auth_url, json=creds, timeout=60)
             auth_response.raise_for_status()  # Raise an error for bad status codes
             auth_data = auth_response.json()
             token = auth_data.get("accessToken")
@@ -58,16 +55,30 @@ class Dendra:
         self.headers = headers
         print("successfully authenticated")
 
-    def get_data(self):
+    def get_datastreams(self, datastream_name, station_id):
         """request data"""
         # raise NotImplementedError
 
         # Use the token to request data from the API
         # headers = {"Authorization": f"Bearer {token}"}
+
+        datastreams_url = self.url + "datastreams"
+
+        params = {
+            "station_id": station_id,
+        }
+
         try:
-            response = requests.get(api_url, headers=headers)
+            response = requests.get(
+                datastreams_url, headers=self.headers, params=params, timeout=60
+            )
             response.raise_for_status()  # Raise an error for bad status codes
-            return response.json()
+            datastream_id = [
+                ds["_id"]
+                for ds in response.json()["data"]
+                if datastream_name in ds["name"]
+            ][0]
+            return datastream_id
 
         except requests.exceptions.RequestException as e:
             print(f"Data request failed: {e}")

@@ -49,19 +49,12 @@ class Dendra:
             print(f"Authentication request failed: {e}")
             return None
 
-        # Use the token to request data from the API
-        # headers = {"Authorization": f"Bearer {token}"}
         headers["Authorization"] = token
         self.headers = headers
         print("successfully authenticated")
 
-    def get_datastreams(self, datastream_name, station_id):
+    def _get_datastreams(self, datastream_name, station_id):
         """request datastream id"""
-        # raise NotImplementedError
-
-        # Use the token to request data from the API
-        # headers = {"Authorization": f"Bearer {token}"}
-
         datastreams_url = self.url + "datastreams"
 
         params = {
@@ -81,12 +74,54 @@ class Dendra:
             return datastream_id
 
         except requests.exceptions.RequestException as e:
-            print(f"Data request failed: {e}")
+            print(f"Datastream request failed: {e}")
+            return None
+
+    def get_datapoints(self, start, end, datastream_name, station_id):
+        """request from datapoints endpoint
+
+        TODO: figure out why timestap is duplicated in request data.
+
+        Parameters:
+
+        start (datetime): start date
+        end (datetime); end date
+        """
+        datapoints_url = self.url + "datapoints"
+        datastream_id = self._get_datastreams(datastream_name, station_id)
+
+        # Get datapoints from datastream
+        params = {
+            "datastream_id": datastream_id,
+            "time[$gte]": str(start).replace(" ", "T").replace(".000000000", "")
+            + ".000Z",
+            "time[$lt]": str(end).replace(" ", "T").replace(".000000000", "") + ".000Z",
+            "$sort[time]": "1",
+            "$limit": "2000",
+            "time_local": False,
+        }
+
+        try:
+            response = requests.get(
+                datapoints_url, headers=self.headers, params=params, timeout=60
+            )
+            response.raise_for_status()  # Raise an error for bad status codes
+
+            response_data = response.json()
+            data = [(i["t"], i["v"]) for i in response_data["data"]]
+            df = pd.DataFrame(data, columns=["datetime", "values"])
+            df.index = pd.to_datetime(df["datetime"])
+            df.drop(columns="datetime", inplace=True)
+            return df
+
+        except requests.exceptions.RequestException as e:
+            print(f"Datapoints request failed: {e}")
             return None
 
 
 def request_HADS(year, siteid, network="HADS"):
     """get HADS met data from Iowa Environmental Mesonet API
+    TODO: make robust with proper request methods
 
     :param (int) year: year in YYYY
     :param (str) siteid: site id

@@ -422,7 +422,7 @@ def get_datapoints(
     if len(bigjson["data"]) > 0:
         df = pd.DataFrame.from_records(bigjson["data"])
     else:
-        df = pd.DataFrame(columns={"lt", "t", "v"})
+        df = pd.DataFrame(columns=["lt", "t", "v"])
 
     # Get human readable name for data column
     if name != "default":

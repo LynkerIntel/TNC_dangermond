@@ -444,10 +444,12 @@ def get_datapoints(
     )
 
     # Convert timestamp columns from 'object' to dt.datetime
-    df.timestamp_local = pd.to_datetime(df.timestamp_local, format="%Y-%m-%dT%H:%M:%S")
-    df.timestamp_utc = pd.to_datetime(
-        df.timestamp_utc, format="%Y-%m-%dT%H:%M:%S.000Z", utc=True
-    )
+    # df.timestamp_local = pd.to_datetime(df.timestamp_local, format="%Y-%m-%dT%H:%M:%S")
+    # df.timestamp_utc = pd.to_datetime(
+    #     df.timestamp_utc, format="%Y-%m-%dT%H:%M:%S.000Z", utc=True
+    # )
+    df.timestamp_local = pd.to_datetime(df.timestamp_local)
+    df.timestamp_utc = pd.to_datetime(df.timestamp_utc, utc=True)
 
     # Set index to timestamp local or utc
     if time_type == "utc":
@@ -467,6 +469,9 @@ def get_datapoints_from_id_list(
     on the list will create the time-index, so it is best if this one is the most complete of the list. If it has
     time gaps, the rest of the dataframe can be compromised.  This may need to be changes in the future.
     All requirements of above get_datapoints apply to get_datapoints_from_list."""
+
+    print("WARN: read docstring: will return incomplete data")  # DR
+
     i = -1
     j = -1
     boo_new = True
@@ -515,7 +520,13 @@ def get_datapoints_from_id_list(
                     dftemp.drop("q", axis=1, inplace=True)
                 # timestamp_utc column will be redundant if merged, so drop
                 dftemp.drop("timestamp_utc", axis=1, inplace=True)
-                df = df.merge(dftemp, how="left", left_index=True, right_index=True)
+                df = df.merge(
+                    dftemp,
+                    how="left",
+                    left_index=True,
+                    right_index=True,
+                    suffixes=("_g1", "_g2", "_g3", "_g4", "_g5"),
+                )  # temp fix DR
                 print(j, dftemp.columns[0], "added.")
     return df
 

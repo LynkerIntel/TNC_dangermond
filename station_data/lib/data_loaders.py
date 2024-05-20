@@ -21,9 +21,9 @@ class Dendra:
         self.password = password
         self.strategy = strategy
         self.url = "https://api.dendra.science/v2/"
-        self.authenticate()
+        self._authenticate()
 
-    def authenticate(self):
+    def _authenticate(self):
         """
         Authenticate with the API and retrieve the token.
 

@@ -4,10 +4,14 @@ QC and processing code in support of creating a water balance from 1979-2023
 
 
 ### Details
+**Notebooks:**
 `./station_query.r` Initial investigation using existing rainOrSnowTools code  
-`./station_query.ipynb` Request data w/ several APIs. 
+`./station_query.ipynb` Request met station data w/ several APIs. 
+`./dendra_query.ipynb` Request data from Dendra, currently grounwater well data
 
+**Code:**
+`./lib` contains the code required to run the notebooks (minimizing notebook code).
+    >> `./lib/data_loaders.py` contains `Dendra` class for querying data
+    >> `./lib/dendra_berkeley.py` contains older python wrapper 
 
-`./lib/data_loaders` utilites for interfacing with the Dendra API (note: the Dendra class is overkill for just pulling data, but will come in handy for the dashboard)
-
-Note: `./output` files are stored on aws s3 
+Note: `./output` files are stored on aws s3, in `tnc-dangermond`

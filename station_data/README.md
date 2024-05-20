@@ -8,7 +8,6 @@ QC and processing code in support of creating a water balance from 1979-2023
 
 `./station_query.r` Initial investigation using existing rainOrSnowTools code  
 `./station_query.ipynb` Request met station data w/ several APIs.  
-
 `./dendra_query.ipynb` Request data from Dendra, currently grounwater well data  
 
 **Code:**
@@ -19,5 +18,5 @@ QC and processing code in support of creating a water balance from 1979-2023
 
     >>  `./lib/dendra_berkeley.py` contains older python wrapper  
 
-    
+
 Note: `./output` files are stored on aws s3, in `tnc-dangermond`

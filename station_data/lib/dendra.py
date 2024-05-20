@@ -525,7 +525,7 @@ def get_datapoints_from_id_list(
                     how="left",
                     left_index=True,
                     right_index=True,
-                    suffixes=("_g1", "_g2", "_g3", "_g4", "_g5"),
+                    # suffixes=("_g1", "_g2", "_g3", "_g4", "_g5"),
                 )  # temp fix DR
                 print(j, dftemp.columns[0], "added.")
     return df

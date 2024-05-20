@@ -42,119 +42,225 @@ def request_HADS(year, siteid, network="HADS"):
 
 
 # shelving this class for now, using existing Berkeley code
-# class Dendra:
-#     def __init__(self, email, password, strategy="local"):
-#         """
-#         Initialize the API Client with authentication details and retrieve the token.
+class Dendra:
+    def __init__(self, email, password, strategy="local"):
+        """
+        Initialize the API Client with authentication details and retrieve the token.
 
-#         Parameters:
-#         email (str): dendra user email
-#         password (str): The dendra password for authentication.
-#         strategy (str): leaving as default for now
-#         """
-#         self.email = email
-#         self.password = password
-#         self.strategy = strategy
-#         self.url = "https://api.dendra.science/v2/"
-#         self.authenticate()
+        Parameters:
+        email (str): dendra user email
+        password (str): The dendra password for authentication.
+        strategy (str): leaving as default for now
+        """
+        self.email = email
+        self.password = password
+        self.strategy = strategy
+        self.url = "https://api.dendra.science/v2/"
+        self.authenticate()
 
-#     def authenticate(self):
-#         """
-#         Authenticate with the API and retrieve the token.
+    def authenticate(self):
+        """
+        Authenticate with the API and retrieve the token.
 
-#         Returns:
-#         str: The authentication token if successful, None otherwise.
-#         """
-#         auth_url = self.url + "authentication"
-#         headers = {"Content-Type": "application/json"}
+        Returns:
+        str: The authentication token if successful, None otherwise.
+        """
+        auth_url = self.url + "authentication"
+        headers = {"Content-Type": "application/json"}
 
-#         creds = {
-#             "email": self.email,
-#             "strategy": self.strategy,
-#             "password": self.password,
-#         }
+        creds = {
+            "email": self.email,
+            "strategy": self.strategy,
+            "password": self.password,
+        }
 
-#         # Authenticate and obtain a token
-#         try:
-#             auth_response = requests.post(auth_url, json=creds, timeout=60)
-#             auth_response.raise_for_status()  # Raise an error for bad status codes
-#             auth_data = auth_response.json()
-#             token = auth_data.get("accessToken")
+        # Authenticate and obtain a token
+        try:
+            auth_response = requests.post(auth_url, json=creds, timeout=60)
+            auth_response.raise_for_status()  # Raise an error for bad status codes
+            auth_data = auth_response.json()
+            token = auth_data.get("accessToken")
 
-#             if not token:
-#                 print("Authentication failed: No token received.")
-#                 return None
+            if not token:
+                print("Authentication failed: No token received.")
+                return None
 
-#         except requests.exceptions.RequestException as e:
-#             print(f"Authentication request failed: {e}")
-#             return None
+        except requests.exceptions.RequestException as e:
+            print(f"Authentication request failed: {e}")
+            return None
 
-#         headers["Authorization"] = token
-#         self.headers = headers
-#         print("successfully authenticated")
+        headers["Authorization"] = token
+        self.headers = headers
+        print("successfully authenticated")
 
-#     def get_datastreams(self, datastream_name, station_id=""):
-#         """request datastream id"""
-#         datastreams_url = self.url + "datastreams"
+    def get_datastream_id(self, datastream_name, station_id=""):
+        """request datastream id"""
+        datastreams_url = self.url + "datastreams"
 
-#         params = {
-#             "station_id": station_id,
-#         }
+        params = {
+            "station_id": station_id,
+        }
 
-#         try:
-#             response = requests.get(
-#                 datastreams_url, headers=self.headers, params=params, timeout=60
-#             )
-#             response.raise_for_status()  # Raise an error for bad status codes
+        try:
+            response = requests.get(
+                datastreams_url, headers=self.headers, params=params, timeout=60
+            )
+            response.raise_for_status()  # Raise an error for bad status codes
 
-#             # datastream_id = [
-#             #     ds["_id"]
-#             #     for ds in response.json()["data"]
-#             #     if datastream_name in ds["name"]
-#             # ][0]
-#             return response.json()
+            datastream_id = [
+                ds["_id"]
+                for ds in response.json()["data"]
+                if datastream_name in ds["name"]
+            ][0]
+            return datastream_id
 
-#         except requests.exceptions.RequestException as e:
-#             print(f"Datastream request failed: {e}")
-#             return None
+        except requests.exceptions.RequestException as e:
+            print(f"Datastream request failed: {e}")
+            return None
 
-#     def get_datapoints(self, start, end, datastream_name, station_id):
-#         """request from datapoints endpoint
+    # def get_datapoints_dr(self, start, end, datastream_name, station_id):
+    #     """request from datapoints endpoint
 
-#         TODO: figure out why timestap is duplicated in request data.
+    #     TODO: figure out why timestap is duplicated in request data.
 
-#         Parameters:
+    #     Parameters:
 
-#         start (datetime): start date
-#         end (datetime); end date
-#         """
-#         datapoints_url = self.url + "datapoints"
-#         datastream_id = self.get_datastreams(datastream_name, station_id)
+    #     start (datetime): start date
+    #     end (datetime); end date
+    #     """
+    #     datapoints_url = self.url + "datapoints"
+    #     datastream_id = self.get_datastream_id(datastream_name, station_id)
 
-#         # Get datapoints from datastream
-#         params = {
-#             "datastream_id": datastream_id,
-#             "time[$gte]": str(start).replace(" ", "T").replace(".000000000", "")
-#             + ".000Z",
-#             "time[$lt]": str(end).replace(" ", "T").replace(".000000000", "") + ".000Z",
-#             "$sort[time]": "1",
-#             "$limit": "2000",
-#             "time_local": False,
-#         }
+    #     # Get datapoints from datastream
+    #     params = {
+    #         "datastream_id": datastream_id,
+    #         "time[$gte]": str(start).replace(" ", "T").replace(".000000000", "")
+    #         + ".000Z",
+    #         "time[$lt]": str(end).replace(" ", "T").replace(".000000000", "") + ".000Z",
+    #         "$sort[time]": "1",
+    #         "$limit": "2000",
+    #         "time_local": False,
+    #     }
 
-#         try:
-#             response = requests.get(
-#                 datapoints_url, headers=self.headers, params=params, timeout=60
-#             )
-#             response.raise_for_status()  # Raise an error for bad status codes
+    #     try:
+    #         response = requests.get(
+    #             datapoints_url, headers=self.headers, params=params, timeout=60
+    #         )
+    #         response.raise_for_status()  # Raise an error for bad status codes
 
-#             response_data = response.json()
-#             data = [(i["t"], i["v"]) for i in response_data["data"]]
-#             df = pd.DataFrame(data, columns=["datetime", "values"])
-#             df.index = pd.to_datetime(df["datetime"])
-#             df.drop(columns="datetime", inplace=True)
-#             return df
+    #         response_data = response.json()
+    #         data = [(i["t"], i["v"]) for i in response_data["data"]]
+    #         df = pd.DataFrame(data, columns=["datetime", "values"])
+    #         df.index = pd.to_datetime(df["datetime"])
+    #         df.drop(columns="datetime", inplace=True)
+    #         return df
 
-#         except requests.exceptions.RequestException as e:
-#             print(f"Datapoints request failed: {e}")
-#             return None
+    #     except requests.exceptions.RequestException as e:
+    #         print(f"Datapoints request failed: {e}")
+    #         return None
+
+    def get_datapoints(
+        self,
+        datastream_id,
+        begins_at,
+        ends_before,
+        time_type="local",
+        name="default",
+    ):
+        """Refactored from Berekely code
+
+        GET Datapoints returns actual datavalues for only one datastream.
+        Returns a Pandas DataFrame columns. Both local and UTC time will be returned.
+        Parameters: ends_before is optional. Defaults to now. time_type is optional default 'local', either 'utc' or 'local'
+        if you choose 'utc', timestamps must have 'Z' at the end to indicate UTC time.
+        """
+        datapoints_url = self.url + "datapoints"
+
+        if type(datastream_id) is not str:
+            return "INVALID DATASTREAM_ID (bad type)"
+        if len(datastream_id) != 24:
+            return "INVALID DATASTREAM_ID (wrong length)"
+        if time_type == "utc" and ends_before[-1] != "Z":
+            ends_before += "Z"
+
+        query = {
+            "datastream_id": datastream_id,
+            "time[$gte]": begins_at,
+            "time[$lt]": ends_before,
+            "$sort[time]": "1",
+            "$limit": "2016",  # DR: limit is 2000 in API docs...
+        }
+        if time_type == "utc":
+            time_col = "t"
+        else:
+            query.update({"time_local": "true"})
+            time_col = "lt"
+
+        # Dendra requires paging of 2,000 records maximum at a time.
+        # To get around this, we loop through multiple requests and append
+        # the results into a single dataset.
+        # DR notes to self: this needs to broken out into a function
+        try:
+            r = requests.get(
+                datapoints_url, headers=self.headers, params=query, timeout=60
+            )
+            assert r.status_code == 200
+        except:
+            return r.status_code
+        rjson = r.json()
+        bigjson = rjson
+        while len(rjson["data"]) > 0:
+            df = pd.DataFrame.from_records(bigjson["data"])
+            time_last = df[time_col].max()  # issue#1 miguel
+            query["time[$gt]"] = time_last
+            r = requests.get(
+                datapoints_url, headers=self.headers, params=query, timeout=60
+            )
+            assert r.status_code == 200
+            rjson = r.json()
+            bigjson["data"].extend(rjson["data"])
+
+        # Create Pandas DataFrame and set time as index
+        # If the datastream has data for the time period, populate DataFrame
+        if len(bigjson["data"]) > 0:
+            df = pd.DataFrame.from_records(bigjson["data"])
+        else:
+            df = pd.DataFrame(columns=["lt", "t", "v"])
+
+        # Get human readable name for data column
+        if name == "default":
+            datastream_name = name
+        else:
+            raise NotImplementedError
+            # need to refactor this def
+            # datastream_meta = get_meta_datastream_by_id(
+            #     datastream_id, {"$select[name]": 1, "$select[station_id]": 1}
+            # )
+            # station_meta = get_meta_station_by_id(
+            #     datastream_meta["station_id"], {"$select[slug]": 1}
+            # )
+            # stn = station_meta["slug"].replace("-", " ").title().replace(" ", "")
+            # datastream_name = stn + "_" + datastream_meta["name"].replace(" ", "_")
+
+        # Rename columns
+        df.rename(
+            columns={
+                "lt": "timestamp_local",
+                "t": "timestamp_utc",
+                "v": datastream_name,
+            },
+            inplace=True,
+        )
+
+        # Convert timestamp columns from 'object' to dt.datetime
+        df.timestamp_local = pd.to_datetime(df.timestamp_local)
+        df.timestamp_utc = pd.to_datetime(df.timestamp_utc, utc=True)
+
+        # Set index to timestamp local or utc
+        if time_type == "utc":
+            df.set_index("timestamp_utc", inplace=True, drop=True)
+        else:
+            df.set_index("timestamp_local", inplace=True, drop=True)
+
+        # Return DataFrame
+        return df

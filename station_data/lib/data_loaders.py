@@ -2,50 +2,15 @@ import requests
 import pandas as pd
 
 
-def request_HADS(year, siteid, network="HADS"):
-    """get HADS met data from Iowa Environmental Mesonet API
-    TODO: make robust with proper request methods
-
-    :param (int) year: year in YYYY
-    :param (str) siteid: site id
-    :param (str) network: one of "HADS", "CA_DCP", "CA_ASOS"
-    :returns (pd.DataFrame): df of all available vars for site
-    """
-    URL = f"https://mesonet.agron.iastate.edu/cgi-bin/request/hads.py?network={network}&sts={year}-01-01T00:00:00Z&ets={year+1}-12-31T23:00:00Z&stations={siteid}&format=csv"
-
-    try:
-        response = requests.get(URL, timeout=120)
-        if response.status_code == 200:
-
-            headers = response.text.splitlines()[0].split(",")
-            data = response.text.splitlines()[1:]
-
-            data = [item.split(",") for item in data]
-            df = pd.DataFrame(data, columns=headers)
-            df.index = pd.to_datetime(df["utc_valid"])
-
-            # for numeric dtypes cast to float or int, ignore str cols
-            cols = df.columns.drop(["station", "utc_valid"])
-            df[cols] = df[cols].apply(pd.to_numeric, errors="coerce")
-
-            return df
-        else:
-            print(
-                "Error: Failed to fetch or parse data to DF. Status code:",
-                response.status_code,
-            )
-            return None
-
-    except Exception as e:
-        print("Error:", e)
-        return None
-
-
-# shelving this class for now, using existing Berkeley code
 class Dendra:
     def __init__(self, email, password, strategy="local"):
         """
         Initialize the API Client with authentication details and retrieve the token.
+
+        This class is based off of the "Dendra API query" module, the UC Berekely
+        python wrapper. This is preferable to use due to newer package captibility
+        and some bugfixes. Not all functionality has been carried over due to time
+        constraints.
 
         Parameters:
         email (str): dendra user email
@@ -172,10 +137,18 @@ class Dendra:
         query = {"_id": station_id}
         if query_add != "":
             query.update(query_add)
-        r = requests.get(stations_url, headers=self.headers, params=query, timeout=60)
-        assert r.status_code == 200
-        rjson = r.json()
-        return rjson["data"][0]
+
+        try:
+            r = requests.get(
+                stations_url, headers=self.headers, params=query, timeout=60
+            )
+            r.raise_for_status()  # Raise an error for bad status codes
+            rjson = r.json()
+            return rjson["data"][0]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Datapoints request failed: {e}")
+            return None
 
     def get_meta_datastream_by_id(self, datastream_id, query_add=""):
         """
@@ -190,14 +163,70 @@ class Dendra:
         query = {"_id": datastream_id}
         if query_add != "":
             query.update(query_add)
-        r = requests.get(
-            datastreams_url,
-            headers=self.headers,
-            params=query,
-        )
+
+        try:
+            r = requests.get(
+                datastreams_url, headers=self.headers, params=query, timeout=60
+            )
+            r.raise_for_status()  # Raise an error for bad status codes
+            rjson = r.json()
+            return rjson["data"][0]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Datapoints request failed: {e}")
+            return None
+
+    def list_datastreams_by_measurement(
+        self, measurement="", aggregate="", station_id=[], orgslug="", query_add=""
+    ):
+        # parameters: measurements and aggregates are spelled out and capitalized
+        # measurement: see dendra.science for list. No spaces. (AirTemperature, VolumetricWaterContent, RainfallCumulative, etc.
+        # aggregate: Minimum, Average, Maximum, Cumulative
+        # station_id: MongoID
+        # orgslug: shortname (currently erczo, ucnrs, chi, ucanr, tnc, pepperwood)
+        # query_add: JSON query please see documentation https://dendrascience.github.io/dendra-json-schema/
+        datastreams_url = self.url + "datastreams"
+
+        query = {"$sort[name]": 1, "$select[name]": 1, "$limit": 2016}
+        if measurement != "":
+            query.update(
+                {"terms_info.class_tags[$all][0]": "dq_Measurement_" + measurement}
+            )
+        if aggregate != "":
+            query.update(
+                {"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate}
+            )
+        if station_id != []:
+            query.update({"station_id": station_id})
+        if orgslug != "":
+            orgid = self.get_organization_id(orgslug)
+            query.update({"organization_id": orgid})
+
+        if query_add != "":
+            query.update(query_add)
+
+        try:
+            r = requests.get(
+                datastreams_url, headers=self.headers, params=query, timeout=60
+            )
+            r.raise_for_status()  # Raise an error for bad status codes
+            rjson = r.json()
+            return rjson["data"]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Datastreams request failed: {e}")
+            return None
+
+    def get_organization_id(self, orgslug):
+        """
+        # orgslug: the short name for an organization. can be found in the url on the dendra.science site.
+        # examples: 'erczo','ucnrs','chi','ucanr','tnc','pepperwood', 'cdfw' (may change in future)
+        """
+        query = {"$select[_id]": 1, "slug": orgslug}
+        r = requests.get(self.url + "organizations", headers=self.headers, params=query)
         assert r.status_code == 200
         rjson = r.json()
-        return rjson["data"][0]
+        return rjson["data"][0]["_id"]
 
     def get_datapoints(
         self,
@@ -304,3 +333,45 @@ class Dendra:
 
         # Return DataFrame
         return df
+
+
+# None Dendra code ->
+
+
+def request_HADS(year, siteid, network="HADS"):
+    """get HADS met data from Iowa Environmental Mesonet API
+    TODO: make robust with proper request methods
+
+    :param (int) year: year in YYYY
+    :param (str) siteid: site id
+    :param (str) network: one of "HADS", "CA_DCP", "CA_ASOS"
+    :returns (pd.DataFrame): df of all available vars for site
+    """
+    URL = f"https://mesonet.agron.iastate.edu/cgi-bin/request/hads.py?network={network}&sts={year}-01-01T00:00:00Z&ets={year+1}-12-31T23:00:00Z&stations={siteid}&format=csv"
+
+    try:
+        response = requests.get(URL, timeout=120)
+        if response.status_code == 200:
+
+            headers = response.text.splitlines()[0].split(",")
+            data = response.text.splitlines()[1:]
+
+            data = [item.split(",") for item in data]
+            df = pd.DataFrame(data, columns=headers)
+            df.index = pd.to_datetime(df["utc_valid"])
+
+            # for numeric dtypes cast to float or int, ignore str cols
+            cols = df.columns.drop(["station", "utc_valid"])
+            df[cols] = df[cols].apply(pd.to_numeric, errors="coerce")
+
+            return df
+        else:
+            print(
+                "Error: Failed to fetch or parse data to DF. Status code:",
+                response.status_code,
+            )
+            return None
+
+    except Exception as e:
+        print("Error:", e)
+        return None

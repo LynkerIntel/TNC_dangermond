@@ -159,6 +159,46 @@ class Dendra:
     #         print(f"Datapoints request failed: {e}")
     #         return None
 
+    def get_meta_station_by_id(self, station_id, query_add=""):
+        """
+        Request station metadata by station id
+        """
+        stations_url = self.url + "stations"
+
+        if type(station_id) is not str:
+            return "INVALID station_id (bad type)"
+        if len(station_id) != 24:
+            return "INVALID station_id (wrong length)"
+        query = {"_id": station_id}
+        if query_add != "":
+            query.update(query_add)
+        r = requests.get(stations_url, headers=self.headers, params=query, timeout=60)
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"][0]
+
+    def get_meta_datastream_by_id(self, datastream_id, query_add=""):
+        """
+        Request metadata with datastream id
+        """
+        datastreams_url = self.url + "datastreams"
+
+        if type(datastream_id) is not str:
+            return "INVALID DATASTREAM_ID (bad type)"
+        if len(datastream_id) != 24:
+            return "INVALID DATASTREAM_ID (wrong length)"
+        query = {"_id": datastream_id}
+        if query_add != "":
+            query.update(query_add)
+        r = requests.get(
+            datastreams_url,
+            headers=self.headers,
+            params=query,
+        )
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"][0]
+
     def get_datapoints(
         self,
         datastream_id,
@@ -231,16 +271,16 @@ class Dendra:
         if name == "default":
             datastream_name = name
         else:
-            raise NotImplementedError
+            # raise NotImplementedError
             # need to refactor this def
-            # datastream_meta = get_meta_datastream_by_id(
-            #     datastream_id, {"$select[name]": 1, "$select[station_id]": 1}
-            # )
-            # station_meta = get_meta_station_by_id(
-            #     datastream_meta["station_id"], {"$select[slug]": 1}
-            # )
-            # stn = station_meta["slug"].replace("-", " ").title().replace(" ", "")
-            # datastream_name = stn + "_" + datastream_meta["name"].replace(" ", "_")
+            datastream_meta = self.get_meta_datastream_by_id(
+                datastream_id, {"$select[name]": 1, "$select[station_id]": 1}
+            )
+            station_meta = self.get_meta_station_by_id(
+                datastream_meta["station_id"], {"$select[slug]": 1}
+            )
+            stn = station_meta["slug"].replace("-", " ").title().replace(" ", "")
+            datastream_name = stn + "_" + datastream_meta["name"].replace(" ", "_")
 
         # Rename columns
         df.rename(

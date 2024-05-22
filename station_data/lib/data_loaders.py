@@ -347,7 +347,7 @@ def request_HADS(year, siteid, network="HADS"):
     :param (str) network: one of "HADS", "CA_DCP", "CA_ASOS"
     :returns (pd.DataFrame): df of all available vars for site
     """
-    URL = f"https://mesonet.agron.iastate.edu/cgi-bin/request/hads.py?network={network}&sts={year}-01-01T00:00:00Z&ets={year+1}-12-31T23:00:00Z&stations={siteid}&format=csv"
+    URL = f"https://mesonet.agron.iastate.edu/cgi-bin/request/hads.py?network={network}&var=max_temp_f&var=min_temp_f&var=max_dewpoint_f&var=min_dewpoint_f&var=precip_in&var=avg_wind_speed_kts&var=avg_wind_drct&var=min_rh&var=avg_rh&var=max_rh&var=climo_high_f&var=climo_low_f&var=climo_precip_in&var=snow_in&var=snowd_in&var=min_feel&var=avg_feel&var=max_feel&var=max_wind_speed_kts&var=max_wind_gust_kts&var=srad_mj&na=None&sts={year}-01-01T00:00:00Z&ets={year+1}-12-31T23:00:00Z&stations={siteid}&format=csv"
 
     try:
         response = requests.get(URL, timeout=120)

@@ -83,47 +83,6 @@ class Dendra:
             print(f"Datastream request failed: {e}")
             return None
 
-    # def get_datapoints_dr(self, start, end, datastream_name, station_id):
-    #     """request from datapoints endpoint
-
-    #     TODO: figure out why timestap is duplicated in request data.
-
-    #     Parameters:
-
-    #     start (datetime): start date
-    #     end (datetime); end date
-    #     """
-    #     datapoints_url = self.url + "datapoints"
-    #     datastream_id = self.get_datastream_id(datastream_name, station_id)
-
-    #     # Get datapoints from datastream
-    #     params = {
-    #         "datastream_id": datastream_id,
-    #         "time[$gte]": str(start).replace(" ", "T").replace(".000000000", "")
-    #         + ".000Z",
-    #         "time[$lt]": str(end).replace(" ", "T").replace(".000000000", "") + ".000Z",
-    #         "$sort[time]": "1",
-    #         "$limit": "2000",
-    #         "time_local": False,
-    #     }
-
-    #     try:
-    #         response = requests.get(
-    #             datapoints_url, headers=self.headers, params=params, timeout=60
-    #         )
-    #         response.raise_for_status()  # Raise an error for bad status codes
-
-    #         response_data = response.json()
-    #         data = [(i["t"], i["v"]) for i in response_data["data"]]
-    #         df = pd.DataFrame(data, columns=["datetime", "values"])
-    #         df.index = pd.to_datetime(df["datetime"])
-    #         df.drop(columns="datetime", inplace=True)
-    #         return df
-
-    #     except requests.exceptions.RequestException as e:
-    #         print(f"Datapoints request failed: {e}")
-    #         return None
-
     def get_meta_station_by_id(self, station_id, query_add=""):
         """
         Request station metadata by station id
@@ -152,7 +111,7 @@ class Dendra:
 
     def get_meta_datastream_by_id(self, datastream_id, query_add=""):
         """
-        Request metadata with datastream id
+        Request metadata with *datastream* id
         """
         datastreams_url = self.url + "datastreams"
 
@@ -175,6 +134,22 @@ class Dendra:
         except requests.exceptions.RequestException as e:
             print(f"Datapoints request failed: {e}")
             return None
+
+    def get_meta_station_by_id(self, station_id, query_add=""):
+        """
+        Get *station* metadata by ID.
+        """
+        if type(station_id) is not str:
+            return "INVALID station_id (bad type)"
+        if len(station_id) != 24:
+            return "INVALID station_id (wrong length)"
+        query = {"_id": station_id}
+        if query_add != "":
+            query.update(query_add)
+        r = requests.get(self.url + "stations", headers=self.headers, params=query)
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"][0]
 
     def list_datastreams_by_measurement(
         self, measurement="", aggregate="", station_id=[], orgslug="", query_add=""
@@ -334,8 +309,52 @@ class Dendra:
         # Return DataFrame
         return df
 
+    def list_organizations(self, orgslug="all"):
+        """options: 'erczo','ucnrs','chi','tnc','ucanr','pepperwood'"""
+        query = {"$sort[name]": 1, "$select[name]": 1, "$select[slug]": 1}
+        if orgslug != "all":
+            query["slug"] = orgslug
 
-# None Dendra code ->
+        r = requests.get(self.url + "organizations", headers=self.headers, params=query)
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"]
+
+    def list_stations(self, orgslug="all", query_add="none"):
+        """
+        orgslug examples: 'erczo','ucnrs','chi'
+        NOTE: can either do all orgs or one org. No option to list some,
+            unless you custom add to the query.
+        """
+        stations_url = self.url + "stations"
+        query = {
+            "$sort[name]": 1,
+            "$select[name]": 1,
+            "$select[slug]": 1,
+            "$limit": 2016,
+        }
+
+        # Narrow query to one organization
+        if orgslug != "all":
+            org_list = self.list_organizations(orgslug)
+            if len(org_list) == 0:
+                return "ERROR: no organizations found with that acronym."
+            orgid = org_list[0]["_id"]
+            query["organization_id"] = orgid
+
+        # Modify query adding custom elements
+        if query_add != "none":
+            for element in query_add:
+                query[element] = query_add[element]
+
+        # Request JSON from Dendra
+        r = requests.get(stations_url, headers=self.headers, params=query, timeout=60)
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"]
+
+
+# End Dendra code ->
 
 
 def request_HADS(year, siteid, network="HADS"):

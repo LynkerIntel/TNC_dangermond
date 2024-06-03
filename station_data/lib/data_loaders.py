@@ -135,22 +135,6 @@ class Dendra:
             print(f"Datapoints request failed: {e}")
             return None
 
-    def get_meta_station_by_id(self, station_id, query_add=""):
-        """
-        Get *station* metadata by ID.
-        """
-        if type(station_id) is not str:
-            return "INVALID station_id (bad type)"
-        if len(station_id) != 24:
-            return "INVALID station_id (wrong length)"
-        query = {"_id": station_id}
-        if query_add != "":
-            query.update(query_add)
-        r = requests.get(self.url + "stations", headers=self.headers, params=query)
-        assert r.status_code == 200
-        rjson = r.json()
-        return rjson["data"][0]
-
     def list_datastreams_by_measurement(
         self, measurement="", aggregate="", station_id=[], orgslug="", query_add=""
     ):

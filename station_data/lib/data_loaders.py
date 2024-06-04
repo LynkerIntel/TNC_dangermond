@@ -41,7 +41,7 @@ class Dendra:
 
         # Authenticate and obtain a token
         try:
-            auth_response = requests.post(auth_url, json=creds, timeout=60)
+            auth_response = requests.post(auth_url, json=creds, timeout=120)
             auth_response.raise_for_status()  # Raise an error for bad status codes
             auth_data = auth_response.json()
             token = auth_data.get("accessToken")
@@ -68,7 +68,7 @@ class Dendra:
 
         try:
             response = requests.get(
-                datastreams_url, headers=self.headers, params=params, timeout=60
+                datastreams_url, headers=self.headers, params=params, timeout=120
             )
             response.raise_for_status()  # Raise an error for bad status codes
 
@@ -99,7 +99,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                stations_url, headers=self.headers, params=query, timeout=60
+                stations_url, headers=self.headers, params=query, timeout=120
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -125,7 +125,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=60
+                datastreams_url, headers=self.headers, params=query, timeout=120
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -166,7 +166,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=60
+                datastreams_url, headers=self.headers, params=query, timeout=120
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -230,11 +230,13 @@ class Dendra:
         # DR notes to self: this needs to broken out into a function
         try:
             r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=60
+                datapoints_url, headers=self.headers, params=query, timeout=120
             )
             assert r.status_code == 200
         except:
-            return r.status_code
+            # return r.status_code
+            return None, None
+
         rjson = r.json()
         bigjson = rjson
         while len(rjson["data"]) > 0:
@@ -242,7 +244,7 @@ class Dendra:
             time_last = df[time_col].max()  # issue#1 miguel
             query["time[$gt]"] = time_last
             r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=60
+                datapoints_url, headers=self.headers, params=query, timeout=120
             )
             assert r.status_code == 200
             rjson = r.json()
@@ -291,7 +293,7 @@ class Dendra:
             df.set_index("timestamp_local", inplace=True, drop=True)
 
         # Return DataFrame
-        return df
+        return df, datastream_name
 
     def list_organizations(self, orgslug="all"):
         """options: 'erczo','ucnrs','chi','tnc','ucanr','pepperwood'"""
@@ -332,9 +334,67 @@ class Dendra:
                 query[element] = query_add[element]
 
         # Request JSON from Dendra
-        r = requests.get(stations_url, headers=self.headers, params=query, timeout=60)
+        r = requests.get(stations_url, headers=self.headers, params=query, timeout=120)
         assert r.status_code == 200
         rjson = r.json()
+        return rjson["data"]
+
+    def list_datastreams_by_station_id(self, station_id, query_add=""):
+        query = {
+            "$sort[name]": 1,
+            "$select[name]": 1,
+            "station_id": station_id,
+            "$limit": 2016,
+        }
+        if query_add != "":
+            query.update(query_add)
+
+        # Request JSON from Dendra
+        r = requests.get(self.url + "datastreams", headers=self.headers, params=query)
+        assert r.status_code == 200
+        rjson = r.json()
+        return rjson["data"]
+
+    def list_datastreams_by_medium_variable(
+        self,
+        medium="",
+        variable="",
+        aggregate="",
+        station_id="",
+        orgslug="",
+        query_add="",
+    ):
+        """
+        parameters:
+        medium: Air, Water, Soil, etc
+        variable: Temperature, Moisture, Radiation, etc
+        aggregate: Minimum, Average, Maximum, Cumulative
+        station_id: MongoID
+        orgslug: shortname (currently erczo, ucnrs, chi, ucanr, tnc, pepperwood)
+        query_add: JSON query please see documentation https://dendrascience.github.io/dendra-json-schema/
+        """
+        query = {"$sort[name]": 1, "$select[name]": 1, "$limit": 2016}
+        if medium != "":
+            query.update({"terms_info.class_tags[$all][0]": "ds_Medium_" + medium})
+        if variable != "":
+            query.update({"terms_info.class_tags[$all][1]": "ds_Variable_" + variable})
+        if aggregate != "":
+            query.update(
+                {"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate}
+            )
+        if station_id != "":
+            query.update({"station_id": station_id})
+        if orgslug != "":
+            orgid = self.get_organization_id(orgslug)
+            query.update({"organization_id": orgid})
+        if query_add != "":
+            query.update(query_add)
+
+        # Request JSON from Dendra
+        r = requests.get(self.url + "datastreams", headers=self.headers, params=query)
+        assert r.status_code == 200
+        rjson = r.json()
+
         return rjson["data"]
 
 

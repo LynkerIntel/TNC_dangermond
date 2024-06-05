@@ -201,6 +201,15 @@ class Dendra:
         Returns a Pandas DataFrame columns. Both local and UTC time will be returned.
         Parameters: ends_before is optional. Defaults to now. time_type is optional default 'local', either 'utc' or 'local'
         if you choose 'utc', timestamps must have 'Z' at the end to indicate UTC time.
+
+        :param data_stream_id (str): id of datastream
+        :param begins_at (str): start time, fmt = "1980-01-01T00:00:00"
+        :param ends_before (str): ends before time, fmt = "1980-01-01T00:00:00"
+        :param time_type (str): whether to return data in UTC or local time, default local
+        :param name (str): whether or not to fetch human readable col names, TODO: change name
+
+        :returns (pd.Dataframe, str) OR (None, None): tuple of pd.DataFrame and str of datastream name,
+            OR tuple of None, None
         """
         datapoints_url = self.url + "datapoints"
 

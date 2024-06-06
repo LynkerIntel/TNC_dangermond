@@ -13,10 +13,7 @@ QC and processing code in support of creating a water balance from 1979-2023
 **Code:**
 
 `./lib` contains the code required to run the notebooks (minimizing notebook code).  
-
-    >>  `./lib/data_loaders.py` contains `Dendra` class for querying data  
-
-    >>  `./lib/dendra_berkeley.py` contains older python wrapper  
-
+`./lib/data_loaders.py` contains `Dendra` class for querying data.  
+`./lib/dendra_berkeley.py` contains older python wrapper.  
 
 Note: `./output` files are stored on aws s3, in `tnc-dangermond`

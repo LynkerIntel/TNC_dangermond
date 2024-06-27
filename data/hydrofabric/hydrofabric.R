@@ -1,5 +1,5 @@
 source("config.R")
-
+devtools::load_all('/Users/mikejohnson/github/hydrofab')
 jldp = st_buffer(read_sf(glue('{dir}/tnc.geojson')), 500)
 
 # Flowlines ---------------------------------------------------------------
@@ -228,5 +228,58 @@ xx2 = read_sf(nextgen_file, "network") %>%
 # Write it all out --------------------------------------------------------
 write_parquet(w, model_weights_file)
 write_parquet(model_attributes, model_atts_file)
-write_parquet(model_attributes, flows_atts_file)
+write_parquet(xx2, flows_atts_file)
+
+source("config.R")
+
+rl_vars = c("hf_id", "rl_Qi_m3s", "rl_MusK_s", "rl_MusX", "rl_n",
+            "rl_So", "rl_ChSlp", "rl_BtmWdth_m", 
+            "rl_Kchan_mmhr",
+            "rl_nCC", "rl_TopWdthCC_m", "rl_TopWdth_m",
+            'rl_Length_m')
+
+s = '/Users/mikejohnson/hydrofabric/v2.2'
+
+tnc = read_sf(nextgen_file, "divides") %>% 
+  select(small_area = areasqkm, id)
+
+reference_fabric = open_dataset(glue('{s}/reference/conus_divides')) %>% 
+  filter(vpuid == "18") %>% 
+  select(comid = id, big_area = areasqkm, geom) %>% 
+  read_sf_dataset() %>% 
+  st_filter(tnc) 
+
+ints = st_intersection(tnc, reference_fabric) %>% 
+  mutate(int_area = add_areasqkm(.)) %>% 
+  st_drop_geometry() %>%
+  group_by(id) %>% 
+  mutate(artifical_big_area = sum(int_area)) %>% 
+  ungroup() %>% 
+  mutate(ratio = int_area / artifical_big_area) %>% 
+  select(comid, id, ratio) %>% 
+  distinct() %>% 
+  mutate(comid = as.integer(comid)) %>% 
+  filter(complete.cases(.))
+
+rl_mapping = open_dataset(glue('{s}/conus_routelink')) %>%
+  select(hf_id, starts_with("rl_")) %>%
+  inner_join(ints, by = c("hf_id" = "comid")) %>% 
+  collect() %>% 
+  group_by(id) %>%
+  summarize(across(everything(), ~ round( weighted.mean(x = ., w = ratio, na.rm = TRUE), 8))) %>%
+  select(-hf_id, -rl_Length_m, -ratio)
+
+names(rl_mapping) = gsub("rl_", "", names(rl_mapping)) %>% 
+  strsplit('_') %>% 
+  sapply("[[",1)
+
+rl_mapping = read_sf(nextgen_file, "flowpaths") %>% 
+  select(lengthkm, id) %>% 
+  st_drop_geometry() %>% 
+  mutate(length_m = lengthkm * 1000) %>% 
+  select(id, length_m) %>% 
+  right_join(rl_mapping)
+
+write_sf(rl_mapping, nextgen_file, "flowpath_attributes", overwrite = T)
+
 

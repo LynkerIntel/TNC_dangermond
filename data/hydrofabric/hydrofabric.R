@@ -230,13 +230,7 @@ write_parquet(w, model_weights_file)
 write_parquet(model_attributes, model_atts_file)
 write_parquet(xx2, flows_atts_file)
 
-source("config.R")
 
-rl_vars = c("hf_id", "rl_Qi_m3s", "rl_MusK_s", "rl_MusX", "rl_n",
-            "rl_So", "rl_ChSlp", "rl_BtmWdth_m", 
-            "rl_Kchan_mmhr",
-            "rl_nCC", "rl_TopWdthCC_m", "rl_TopWdth_m",
-            'rl_Length_m')
 
 s = '/Users/mikejohnson/hydrofabric/v2.2'
 
@@ -280,6 +274,18 @@ rl_mapping = read_sf(nextgen_file, "flowpaths") %>%
   select(id, length_m) %>% 
   right_join(rl_mapping)
 
-write_sf(rl_mapping, nextgen_file, "flowpath_attributes", overwrite = T)
+# flowpath attributes
+rl_gages = '11120600'
+
+x = dataRetrieval::findNLDI(nwis = rl_gages)[[1]] %>% 
+  st_as_sf(c('X', 'Y'), crs = 4326) %>% 
+  st_transform(5070) %>% 
+  st_intersection(tnc) %>% 
+  st_drop_geometry() %>% 
+  mutate(rl_gages = gsub("USGS-", "", identifier)) %>% 
+  select(id, rl_gages) %>% 
+  right_join(rl_mapping)
+
+write_sf(x, nextgen_file, "flowpath_attributes", overwrite = T)
 
 

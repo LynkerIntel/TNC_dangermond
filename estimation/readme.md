@@ -131,3 +131,6 @@ pip install -e ngen-cal/python/ngen_cal/
 # Notes
 
 Streamflow is compared/optmized using natrualized stream flows at a montly time scale (found in `tnc_hf/model_flows.parquet`).  These flow values are in units of ft^3/sec (CFS).
+
+> [!NOTE]  
+> `realization.json` and `routing.yaml` are currently setup for a one month simulation for testing purposed, these will change as the simulation periods are honed in.

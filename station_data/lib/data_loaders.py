@@ -41,7 +41,7 @@ class Dendra:
 
         # Authenticate and obtain a token
         try:
-            auth_response = requests.post(auth_url, json=creds, timeout=120)
+            auth_response = requests.post(auth_url, json=creds, timeout=240)
             auth_response.raise_for_status()  # Raise an error for bad status codes
             auth_data = auth_response.json()
             token = auth_data.get("accessToken")
@@ -68,7 +68,7 @@ class Dendra:
 
         try:
             response = requests.get(
-                datastreams_url, headers=self.headers, params=params, timeout=120
+                datastreams_url, headers=self.headers, params=params, timeout=240
             )
             response.raise_for_status()  # Raise an error for bad status codes
 
@@ -99,7 +99,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                stations_url, headers=self.headers, params=query, timeout=120
+                stations_url, headers=self.headers, params=query, timeout=240
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -125,7 +125,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=120
+                datastreams_url, headers=self.headers, params=query, timeout=240
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -166,7 +166,7 @@ class Dendra:
 
         try:
             r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=120
+                datastreams_url, headers=self.headers, params=query, timeout=240
             )
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
@@ -239,7 +239,7 @@ class Dendra:
         # DR notes to self: this needs to broken out into a function
         try:
             r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=120
+                datapoints_url, headers=self.headers, params=query, timeout=240
             )
             assert r.status_code == 200
         except:
@@ -253,7 +253,7 @@ class Dendra:
             time_last = df[time_col].max()  # issue#1 miguel
             query["time[$gt]"] = time_last
             r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=120
+                datapoints_url, headers=self.headers, params=query, timeout=240
             )
             assert r.status_code == 200
             rjson = r.json()
@@ -343,7 +343,7 @@ class Dendra:
                 query[element] = query_add[element]
 
         # Request JSON from Dendra
-        r = requests.get(stations_url, headers=self.headers, params=query, timeout=120)
+        r = requests.get(stations_url, headers=self.headers, params=query, timeout=240)
         assert r.status_code == 200
         rjson = r.json()
         return rjson["data"]
@@ -422,7 +422,7 @@ def request_HADS(year, siteid, network="HADS"):
     URL = f"https://mesonet.agron.iastate.edu/cgi-bin/request/hads.py?network={network}&var=max_temp_f&var=min_temp_f&var=max_dewpoint_f&var=min_dewpoint_f&var=precip_in&var=avg_wind_speed_kts&var=avg_wind_drct&var=min_rh&var=avg_rh&var=max_rh&var=climo_high_f&var=climo_low_f&var=climo_precip_in&var=snow_in&var=snowd_in&var=min_feel&var=avg_feel&var=max_feel&var=max_wind_speed_kts&var=max_wind_gust_kts&var=srad_mj&na=None&sts={year}-01-01T00:00:00Z&ets={year+1}-12-31T23:00:00Z&stations={siteid}&format=csv"
 
     try:
-        response = requests.get(URL, timeout=120)
+        response = requests.get(URL, timeout=240)
         if response.status_code == 200:
 
             headers = response.text.splitlines()[0].split(",")

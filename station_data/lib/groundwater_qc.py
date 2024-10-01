@@ -8,6 +8,7 @@ def detect_outliers_zscore(df, column_name, threshold=3):
     This function detects outliers in a specified column of a pandas DataFrame using z-scores.
     Outliers are defined as values with z-scores greater than the threshold or less than -threshold.
     Detected outliers are set to NaN, and the number of dropped values (outliers) is printed.
+    The 'stn_id_dendra' column is retained in the output.
 
     Parameters:
     df (pd.DataFrame): The input DataFrame
@@ -17,6 +18,11 @@ def detect_outliers_zscore(df, column_name, threshold=3):
     Returns:
     pd.DataFrame: A DataFrame with outliers in the specified column replaced by NaN
     """
+    # Carry over the 'stn_id_dendra' column to the output DataFrame
+    stn_id_dendra = (
+        df["stn_id_dendra"].iloc[0] if "stn_id_dendra" in df.columns else None
+    )
+
     # Calculate z-scores for the column, excluding NaN values
     z_scores = zscore(df[column_name].dropna())
 
@@ -27,6 +33,9 @@ def detect_outliers_zscore(df, column_name, threshold=3):
     # Align the mask with the original DataFrame by reindexing and replace outliers with NaN
     df.loc[df[column_name].dropna().index[outliers_mask], column_name] = np.nan
     print(f"Number of outliers dropped: {num_outliers}")
+
+    # Add the 'stn_id_dendra' column back with the same value for all rows
+    df["stn_id_dendra"] = stn_id_dendra
 
     return df
 
@@ -49,6 +58,10 @@ def drop_outliers_rolling(df, column, window=3, threshold=1.5):
     Returns:
         pd.DataFrame: The DataFrame with outliers removed.
     """
+    # Carry over the 'stn_id_dendra' column to the output DataFrame
+    stn_id_dendra = (
+        df["stn_id_dendra"].iloc[0] if "stn_id_dendra" in df.columns else None
+    )
 
     # Calculate the rolling mean and standard deviation for the window
     rolling_mean = df[column].rolling(window=window, center=True).mean()
@@ -65,7 +78,9 @@ def drop_outliers_rolling(df, column, window=3, threshold=1.5):
     print(f"Number of outliers dropped: {outliers_dropped}")
 
     # Drop rows where the z-scores are above the threshold (outliers)
-    clean_df = df[mask]
+    clean_df = df[mask].copy()
+    # add station id back
+    clean_df["stn_id_dendra"] = stn_id_dendra
 
     return clean_df
 

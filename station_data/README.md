@@ -9,6 +9,10 @@ QC and processing code in support of creating a water balance from 1979-2023
 `./station_query.r` Initial investigation using existing rainOrSnowTools code  
 `./station_query.ipynb` Request met station data w/ several APIs.  
 `./dendra_query.ipynb` Request data from Dendra, currently grounwater well data  
+`./water_water_level_delta.ipynb` QC groundwell data, and generate delta. Outputs
+are on s3, output format described below.
+`./catchment_gw_aggregated.ipynb` Aggregate the QC'd groundwell data for use in model calibration.
+Output format described below.
 
 **Code:**
 

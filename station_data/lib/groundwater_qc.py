@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import zscore
+from pathlib import Path
 
 
 def detect_outliers_zscore(df, column_name, threshold=3):
@@ -38,10 +39,6 @@ def detect_outliers_zscore(df, column_name, threshold=3):
     df["stn_id_dendra"] = stn_id_dendra
 
     return df
-
-
-import pandas as pd
-import numpy as np
 
 
 def drop_outliers_rolling(df, column, window=3, threshold=1.5):
@@ -99,3 +96,44 @@ def leading_trailing_nan(df, column_name):
     last_idx = df[column_name].last_valid_index()
 
     return df.loc[first_idx:last_idx]
+
+
+def read_filtered_parquet_directory(directory_path, filter_string="Ranchbot_Depth"):
+    """
+    Recursively reads all Parquet files in the given directory and its subdirectories
+    that include a specified filter string in their filenames into a dictionary of DataFrames.
+
+    Parameters:
+    -----------
+    directory_path : str or Path
+        The path to the directory containing the Parquet files.
+    filter_string : str, optional
+        A string to filter filenames by. Only files whose names include this string will be read.
+        Default is "Ranchbot_Depth".
+
+    Returns:
+    --------
+    dict
+        A dictionary where keys are the file names (without extensions) and values are DataFrames.
+    """
+    # Convert directory_path to a Path object if it's not already
+    directory = Path(directory_path)
+
+    # Initialize an empty dictionary to store the DataFrames
+    parquet_dict = {}
+
+    # Recursively iterate over all Parquet files in the directory and subdirectories
+    for parquet_file in directory.rglob("*.parquet"):
+        # Check if the file name includes the filter string
+        if filter_string in parquet_file.stem:
+            # Use the file name (without extension) as the key
+            file_name = parquet_file.stem
+
+            # Read the Parquet file into a DataFrame
+            df = pd.read_parquet(parquet_file)
+            stn_name = df["stn_name"].iloc[0]
+            print(stn_name)
+            # Store the DataFrame in the dictionary
+            parquet_dict[stn_name] = df
+
+    return parquet_dict

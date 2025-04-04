@@ -73,9 +73,7 @@ class Dendra:
             response.raise_for_status()  # Raise an error for bad status codes
 
             datastream_id = [
-                ds["_id"]
-                for ds in response.json()["data"]
-                if datastream_name in ds["name"]
+                ds["_id"] for ds in response.json()["data"] if datastream_name in ds["name"]
             ][0]
             return datastream_id
 
@@ -98,9 +96,7 @@ class Dendra:
             query.update(query_add)
 
         try:
-            r = requests.get(
-                stations_url, headers=self.headers, params=query, timeout=240
-            )
+            r = requests.get(stations_url, headers=self.headers, params=query, timeout=240)
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
             return rjson["data"][0]
@@ -124,9 +120,7 @@ class Dendra:
             query.update(query_add)
 
         try:
-            r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=240
-            )
+            r = requests.get(datastreams_url, headers=self.headers, params=query, timeout=240)
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
             return rjson["data"][0]
@@ -138,23 +132,21 @@ class Dendra:
     def list_datastreams_by_measurement(
         self, measurement="", aggregate="", station_id=[], orgslug="", query_add=""
     ):
-        # parameters: measurements and aggregates are spelled out and capitalized
-        # measurement: see dendra.science for list. No spaces. (AirTemperature, VolumetricWaterContent, RainfallCumulative, etc.
-        # aggregate: Minimum, Average, Maximum, Cumulative
-        # station_id: MongoID
-        # orgslug: shortname (currently erczo, ucnrs, chi, ucanr, tnc, pepperwood)
-        # query_add: JSON query please see documentation https://dendrascience.github.io/dendra-json-schema/
+        """
+        parameters: measurements and aggregates are spelled out and capitalized
+        measurement: see dendra.science for list. No spaces. (AirTemperature, VolumetricWaterContent, RainfallCumulative, etc.
+        aggregate: Minimum, Average, Maximum, Cumulative
+        station_id: MongoID
+        orgslug: shortname (currently erczo, ucnrs, chi, ucanr, tnc, pepperwood)
+        query_add: JSON query please see documentation https://dendrascience.github.io/dendra-json-schema/
+        """
         datastreams_url = self.url + "datastreams"
 
         query = {"$sort[name]": 1, "$select[name]": 1, "$limit": 2016}
         if measurement != "":
-            query.update(
-                {"terms_info.class_tags[$all][0]": "dq_Measurement_" + measurement}
-            )
+            query.update({"terms_info.class_tags[$all][0]": "dq_Measurement_" + measurement})
         if aggregate != "":
-            query.update(
-                {"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate}
-            )
+            query.update({"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate})
         if station_id != []:
             query.update({"station_id": station_id})
         if orgslug != "":
@@ -165,9 +157,7 @@ class Dendra:
             query.update(query_add)
 
         try:
-            r = requests.get(
-                datastreams_url, headers=self.headers, params=query, timeout=240
-            )
+            r = requests.get(datastreams_url, headers=self.headers, params=query, timeout=240)
             r.raise_for_status()  # Raise an error for bad status codes
             rjson = r.json()
             return rjson["data"]
@@ -202,6 +192,9 @@ class Dendra:
         Parameters: ends_before is optional. Defaults to now. time_type is optional default 'local', either 'utc' or 'local'
         if you choose 'utc', timestamps must have 'Z' at the end to indicate UTC time.
 
+        TODO: DR: there are still cases where this will fail silently, with some connection to the
+        date range of the query.
+
         :param data_stream_id (str): id of datastream
         :param begins_at (str): start time, fmt = "1980-01-01T00:00:00"
         :param ends_before (str): ends before time, fmt = "1980-01-01T00:00:00"
@@ -214,9 +207,9 @@ class Dendra:
         datapoints_url = self.url + "datapoints"
 
         if type(datastream_id) is not str:
-            return "INVALID DATASTREAM_ID (bad type)"
+            return "INVALID DATASTREAM_ID (bad type)", None
         if len(datastream_id) != 24:
-            return "INVALID DATASTREAM_ID (wrong length)"
+            return "INVALID DATASTREAM_ID (wrong length)", None
         if time_type == "utc" and ends_before[-1] != "Z":
             ends_before += "Z"
 
@@ -225,7 +218,7 @@ class Dendra:
             "time[$gte]": begins_at,
             "time[$lt]": ends_before,
             "$sort[time]": "1",
-            "$limit": "2016",  # DR: limit is 2000 in API docs...
+            "$limit": "2016",  # DR: limit is 2000 in API docs.
         }
         if time_type == "utc":
             time_col = "t"
@@ -238,9 +231,7 @@ class Dendra:
         # the results into a single dataset.
         # DR notes to self: this needs to broken out into a function
         try:
-            r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=240
-            )
+            r = requests.get(datapoints_url, headers=self.headers, params=query, timeout=240)
             assert r.status_code == 200
         except:
             # return r.status_code
@@ -252,9 +243,7 @@ class Dendra:
             df = pd.DataFrame.from_records(bigjson["data"])
             time_last = df[time_col].max()  # issue#1 miguel
             query["time[$gt]"] = time_last
-            r = requests.get(
-                datapoints_url, headers=self.headers, params=query, timeout=240
-            )
+            r = requests.get(datapoints_url, headers=self.headers, params=query, timeout=240)
             assert r.status_code == 200
             rjson = r.json()
             bigjson["data"].extend(rjson["data"])
@@ -388,9 +377,7 @@ class Dendra:
         if variable != "":
             query.update({"terms_info.class_tags[$all][1]": "ds_Variable_" + variable})
         if aggregate != "":
-            query.update(
-                {"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate}
-            )
+            query.update({"terms_info.class_tags[$all][2]": "ds_Aggregate_" + aggregate})
         if station_id != "":
             query.update({"station_id": station_id})
         if orgslug != "":

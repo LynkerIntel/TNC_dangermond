@@ -2,9 +2,10 @@ import pandas as pd
 import numpy as np
 from scipy.stats import zscore
 from pathlib import Path
+from scipy.ndimage import gaussian_filter1d
 
 
-def detect_outliers_zscore(df, column_name, threshold=3):
+def detect_outliers_zscore(df, column_name, threshold=3) -> pd.DataFrame:
     """
     This function detects outliers in a specified column of a pandas DataFrame using z-scores.
     Outliers are defined as values with z-scores greater than the threshold or less than -threshold.
@@ -41,7 +42,7 @@ def detect_outliers_zscore(df, column_name, threshold=3):
     return df
 
 
-def drop_outliers_rolling(df, column, window=3, threshold=1.5):
+def drop_outliers_rolling(df, column, window=3, threshold=1.5) -> pd.DataFrame:
     """
     Removes outliers from a time series DataFrame by comparing each data point with its
     preceding and following values in a rolling window and prints the number of outliers dropped.
@@ -82,7 +83,7 @@ def drop_outliers_rolling(df, column, window=3, threshold=1.5):
     return clean_df
 
 
-def leading_trailing_nan(df, column_name):
+def leading_trailing_nan(df, column_name) -> pd.DataFrame:
     """Remove leading and trailing NaN from df.
 
     Parameters:
@@ -98,7 +99,9 @@ def leading_trailing_nan(df, column_name):
     return df.loc[first_idx:last_idx]
 
 
-def read_filtered_parquet_directory(directory_path, filter_string="Ranchbot_Depth"):
+def read_filtered_parquet_directory(
+    directory_path, filter_string="Ranchbot_Depth"
+) -> pd.DataFrame:
     """
     Recursively reads all Parquet files in the given directory and its subdirectories
     that include a specified filter string in their filenames into a dictionary of DataFrames.
@@ -137,3 +140,46 @@ def read_filtered_parquet_directory(directory_path, filter_string="Ranchbot_Dept
             parquet_dict[stn_name] = df
 
     return parquet_dict
+
+
+def interpolate(df) -> pd.DataFrame:
+    """Remove leading and trailing NaN from df.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame
+
+    Returns:
+    pd.DataFrame:
+    """
+    return df.interpolate(method="time")
+
+
+def baro_compensate(
+    df: pd.DataFrame, baro_series: pd.Series, col_name: str
+) -> pd.DataFrame:
+    """Add baro data then find difference."""
+    # resample to hourly (or nudge to hour if datalogger hourly record != HH:00)
+    df = df.resample("1h").mean(numeric_only=True)
+    # then force monotonic
+    df = df.asfreq("1h")
+    # add baro data now that df is hourly and monotonic
+    df["baro_m"] = np.nan
+    df["baro_m"] = baro_series
+
+    # truncate data to match baro record
+    # df = df.loc[:, baro_series.index.max().strftime("%Y-%m-%d")]
+    df = df.truncate(after="2011-05-01 00:00+00:00")
+
+    # subtract atmospheric pressure
+    df[f"{col_name}_barocor"] = df[col_name] - df["baro_m"]
+
+    # Apply Gaussian filter
+    sigma = 8  # Standard deviation for Gaussian kernel
+    df["level_smooth"] = gaussian_filter1d(df[f"{col_name}_barocor"], sigma=sigma)
+
+    # df["level_smooth"] = df[f"{col_name}_barocor"]
+
+    # create difference col
+    df["diff_meters"] = df["level_smooth"].diff(1)
+
+    return df

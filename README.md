@@ -18,7 +18,7 @@ Contains various groundwater-related datasets. "qc" vars indicate quality contro
 - **gw_qc_pass/**: Quality-controlled groundwater data.
 
 Data availability for groundwater wells during the study period:
-![image](./station_data/output/figs/availability_tnc.png)
+![image](./station_data/metadata/availability_tnc.png)
 
 ### Hydrofabric (`hydrofabric`)
 Contains geospatial datasets used for hydrological modeling:
@@ -36,7 +36,7 @@ Contains geospatial datasets used for hydrological modeling:
 ### Meteorological Station Data (`met_station_data`)
 Contains time series data from various meteorological stations in **Parquet** format.
 
-![image](./station_data/output/figs/dangermond_met_locs.png)
+![image](./station_data/metadata/dangermond_met_locs.png)
 
 ### Next Generation Hydrologic Model Data (`ngen_dr`)
 Contains model calibration, validation, and forcing data:
